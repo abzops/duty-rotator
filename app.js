@@ -80,6 +80,17 @@ const FUNNY_VICTORIES = [
 
 // 2. INITIALIZATION ON PAGE LOAD
 window.addEventListener('DOMContentLoaded', () => {
+  // Register Service Worker for PWA cache & Push Notifications
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+      .then((reg) => {
+        console.log('[Service Worker] Registered scope:', reg.scope);
+      })
+      .catch((err) => {
+        console.error('[Service Worker] Registration failed:', err);
+      });
+  }
+
   initApp();
   setupEventListeners();
   setupPwaInstall();
