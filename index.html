@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Duty Rotator</title>
+  
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- Inter Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- JS Dependencies via CDNs -->
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Firebase JS SDK (compat version) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="dark-theme">
+  <!-- Toast Messages for Feedback -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-message">Message goes here</span>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- App Container -->
+  <div class="app-wrapper">
+    <!-- Background Glow Blobs -->
+    <div class="glow-blob blob-1"></div>
+    <div class="glow-blob blob-2"></div>
+
+    <!-- 1. LOGIN VIEW -->
+    <section id="view-login" class="app-view active">
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="cute-robo-container" id="login-robo">
+              <div class="robo-bubble-container" id="login-robo-bubble">
+                <div class="robo-bubble">
+                  <span class="bubble-text" id="login-robo-text"></span>
+                </div>
+              </div>
+              <div class="robo-antenna">
+                <div class="antenna-light"></div>
+                <div class="antenna-shaft"></div>
+              </div>
+              <div class="robo-head">
+                <div class="robo-ears">
+                  <div class="ear-left"></div>
+                  <div class="ear-right"></div>
+                </div>
+                <div class="robo-face">
+                  <div class="robo-eyes">
+                    <div class="robo-eye eye-left"></div>
+                    <div class="robo-eye eye-right"></div>
+                  </div>
+                  <div class="robo-mouth"></div>
+                </div>
+              </div>
+              <div class="robo-arms">
+                <div class="robo-arm arm-left"></div>
+                <div class="robo-arm arm-right"></div>
+              </div>
+            </div>
+            <h1 class="auth-title">Duty Rotator</h1>
+          </div>
+          
+          <form id="form-login" class="auth-form" onsubmit="event.preventDefault();">
+            <div class="input-group">
+              <label for="login-phone">Mobile Number</label>
+              <div class="phone-input-row">
+                <span class="country-code-tag">+91</span>
+                <input type="tel" id="login-phone" placeholder="9876543210" required>
+              </div>
+            </div>
+            
+            <div class="input-group">
+              <label>6-Digit PIN</label>
+              <div class="pin-dots-wrapper">
+                <input type="password" id="login-pin" class="hidden-pin-input" pattern="[0-9]{6}" inputmode="numeric" maxlength="6" required>
+                <div class="pin-dots-container" id="login-pin-dots">
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" id="btn-login-submit" class="btn btn-glass btn-block mt-4">Log In</button>
+          </form>
+
+          <div class="auth-switch-row">
+            <span>Don't have an account?</span>
+            <button type="button" id="btn-goto-signup" class="btn-text">Sign Up</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SIGNUP VIEW -->
+    <section id="view-signup" class="app-view">
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="auth-header">
+            <div class="cute-robo-container" id="signup-robo">
+              <div class="robo-bubble-container" id="signup-robo-bubble">
+                <div class="robo-bubble">
+                  <span class="bubble-text" id="signup-robo-text"></span>
+                </div>
+              </div>
+              <div class="robo-antenna">
+                <div class="antenna-light"></div>
+                <div class="antenna-shaft"></div>
+              </div>
+              <div class="robo-head">
+                <div class="robo-ears">
+                  <div class="ear-left"></div>
+                  <div class="ear-right"></div>
+                </div>
+                <div class="robo-face">
+                  <div class="robo-eyes">
+                    <div class="robo-eye eye-left"></div>
+                    <div class="robo-eye eye-right"></div>
+                  </div>
+                  <div class="robo-mouth"></div>
+                </div>
+              </div>
+              <div class="robo-arms">
+                <div class="robo-arm arm-left"></div>
+                <div class="robo-arm arm-right"></div>
+              </div>
+            </div>
+            <h1 class="auth-title">Create Account</h1>
+          </div>
+
+          <form id="form-signup" class="auth-form" onsubmit="event.preventDefault();">
+            <div class="input-group">
+              <label for="signup-name">Your Full Name</label>
+              <input type="text" id="signup-name" placeholder="e.g. Abhinand" required>
+            </div>
+
+            <div class="input-group">
+              <label for="signup-phone">Mobile Number</label>
+              <div class="phone-input-row">
+                <span class="country-code-tag">+91</span>
+                <input type="tel" id="signup-phone" placeholder="9876543210" required>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Choose 6-Digit PIN</label>
+              <div class="pin-dots-wrapper">
+                <input type="password" id="signup-pin" class="hidden-pin-input" pattern="[0-9]{6}" inputmode="numeric" maxlength="6" required>
+                <div class="pin-dots-container" id="signup-pin-dots">
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                  <span class="pin-dot"></span>
+                </div>
+                <button type="button" id="btn-toggle-signup-pin" class="btn-toggle-pin-dots" title="Show/Hide PIN">
+                  <i data-lucide="eye"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Where do you belong?</label>
+              <div class="segmented-control">
+                <input type="radio" name="signup-workspace" id="ws-office" value="office" checked>
+                <label for="ws-office" class="segment-item">
+                  <i data-lucide="building-2"></i>
+                  <span>Office</span>
+                </label>
+
+                <input type="radio" name="signup-workspace" id="ws-house" value="house">
+                <label for="ws-house" class="segment-item">
+                  <i data-lucide="home"></i>
+                  <span>House</span>
+                </label>
+
+                <input type="radio" name="signup-workspace" id="ws-both" value="both">
+                <label for="ws-both" class="segment-item">
+                  <i data-lucide="repeat"></i>
+                  <span>Both</span>
+                </label>
+                <div class="segmented-slider"></div>
+              </div>
+            </div>
+
+            <button type="button" id="btn-signup-submit" class="btn btn-glass btn-block mt-4">Create Account</button>
+          </form>
+
+          <div class="auth-switch-row">
+            <span>Already have an account?</span>
+            <button type="button" id="btn-goto-login" class="btn-text">Log In</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- MAIN APP SCREEN (Header, Viewport, Bottom Navigation) -->
+    <div id="main-app-container" class="main-app-layout hidden">
+      
+      <!-- Top Header -->
+      <header class="app-header">
+        <div class="header-user-info">
+          <div class="user-avatar" id="header-avatar">A</div>
+          <div>
+            <h4 id="header-username">Abhinand</h4>
+            <span class="workspace-indicator" id="header-user-role">Office Mode</span>
+          </div>
+        </div>
+        
+        <!-- Toggle workspace switcher (Visible only to users with 'both') -->
+        <div class="workspace-switcher-pill hidden" id="workspace-switcher">
+          <button id="switch-btn-office" class="switcher-btn active" data-workspace="office">
+            <i data-lucide="building-2"></i>
+            <span>Office</span>
+          </button>
+          <button id="switch-btn-house" class="switcher-btn" data-workspace="house">
+            <i data-lucide="home"></i>
+            <span>House</span>
+          </button>
+        </div>
+
+        <button id="btn-logout" class="icon-btn-plain" title="Logout">
+          <i data-lucide="log-out"></i>
+        </button>
+      </header>
+
+      <!-- Main Contents Scrollable Area -->
+      <main class="app-content-area">
+
+        <!-- 3. DASHBOARD VIEW -->
+        <div id="view-dashboard" class="tab-content active">
+          <!-- Funny Motivation Banner -->
+          <div class="funny-banner" id="dashboard-funny-quote">
+            "Remember: plastic doesn't rot, but your reputation might."
+          </div>
+
+          <!-- Hero Duty Section -->
+          <div class="hero-duty-section">
+            <h2 class="section-title">Today's Mission</h2>
+            
+            <div class="hero-duty-card" id="today-duty-card">
+              <div class="duty-badge" id="today-duty-badge">Food Waste</div>
+              
+              <div class="duty-info">
+                <h3>Responsible Pair:</h3>
+                <h1 class="assigned-names" id="today-duty-names">Jithin & Abhijith</h1>
+                <p class="duty-date-label" id="today-duty-date">Thursday, June 4</p>
+              </div>
+
+              <!-- iOS Circular Complete Button -->
+              <div class="complete-button-container">
+                <button class="circle-check-btn" id="btn-complete-duty" aria-label="Mark completed">
+                  <svg class="checkmark-svg" viewBox="0 0 52 52">
+                    <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path class="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                  </svg>
+                </button>
+                <span class="complete-btn-label" id="complete-btn-text">Tap to Complete</span>
+              </div>
+            </div>
+
+            <!-- Funny Victory Message (Visible when completed) -->
+            <div class="victory-message-banner hidden" id="today-victory-banner">
+              <i data-lucide="sparkles"></i>
+              <span id="victory-text">Waste vanquished! The kingdom is safe for today.</span>
+            </div>
+
+            <!-- WhatsApp Quick Send -->
+            <button id="btn-whatsapp-reminder" class="btn btn-whatsapp">
+              <i data-lucide="message-square"></i>
+              <span>Send WhatsApp Reminder</span>
+            </button>
+          </div>
+
+          <!-- Tomorrow / Next Duty Preview -->
+          <div class="next-duty-preview-section">
+            <h3 class="section-subtitle">Up Next</h3>
+            <div class="next-duty-card" id="tomorrow-duty-card">
+              <div class="next-badge" id="tomorrow-duty-badge">Plastic Waste</div>
+              <div class="next-details">
+                <h4 id="tomorrow-duty-names">Surya & Abhinand</h4>
+                <p id="tomorrow-duty-date">Friday, June 5</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. CALENDAR VIEW -->
+        <div id="view-calendar" class="tab-content">
+          <!-- Calendar Control Bar -->
+          <div class="calendar-header-bar">
+            <h2>Calendar</h2>
+            <div class="calendar-nav-controls">
+              <!-- View mode toggle pill -->
+              <div class="view-mode-toggle">
+                <button id="btn-calendar-day-mode" class="toggle-btn active" title="Day View">
+                  <i data-lucide="sun"></i>
+                  <span>Day</span>
+                </button>
+                <button id="btn-calendar-month-mode" class="toggle-btn" title="Month View">
+                  <i data-lucide="calendar"></i>
+                  <span>Month</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day View container -->
+          <div id="calendar-day-view-container" class="calendar-view-panel zoom-transition">
+            <div class="day-navigator-card">
+              <button id="btn-prev-day" class="icon-btn" title="Previous Day"><i data-lucide="chevron-left"></i></button>
+              
+              <div class="day-focus-card" id="day-focus-card">
+                <div class="day-focus-date" id="day-focus-date">Thursday, June 4</div>
+                <div class="day-focus-body">
+                  <div class="duty-badge" id="day-focus-badge">Food Waste</div>
+                  <h1 class="day-focus-names" id="day-focus-names">Jithin & Abhijith</h1>
+                  <p class="day-focus-status" id="day-focus-status">Status: Pending</p>
+                </div>
+              </div>
+              
+              <button id="btn-next-day" class="icon-btn" title="Next Day"><i data-lucide="chevron-right"></i></button>
+            </div>
+            
+            <p class="gesture-hint"><i data-lucide="zoom-out"></i> Pinch out to view full month</p>
+          </div>
+
+          <!-- Month View container -->
+          <div id="calendar-month-view-container" class="calendar-view-panel zoom-transition hidden">
+            <div class="month-selector-bar">
+              <button id="btn-prev-month" class="icon-btn" title="Previous Month"><i data-lucide="chevron-left"></i></button>
+              <span id="calendar-month-title">June 2026</span>
+              <button id="btn-next-month" class="icon-btn" title="Next Month"><i data-lucide="chevron-right"></i></button>
+            </div>
+            
+            <!-- Weekday Labels -->
+            <div class="calendar-weekdays">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
+            </div>
+
+            <!-- Calendar Days Grid -->
+            <div class="calendar-days-grid" id="calendar-days-container">
+              <!-- Dynamically generated days -->
+            </div>
+
+            <!-- Calendar Legend -->
+            <div class="calendar-legend">
+              <div class="legend-item"><span class="legend-color food"></span>Food waste (Mon, Wed, Fri)</div>
+              <div class="legend-item"><span class="legend-color plastic"></span>Plastic waste (Thu)</div>
+            </div>
+            
+            <p class="gesture-hint"><i data-lucide="zoom-in"></i> Pinch in or tap a day to view details</p>
+          </div>
+        </div>
+
+        <!-- 5. SETTINGS VIEW -->
+        <div id="view-settings" class="tab-content">
+          
+          <!-- Admin Lock Overlay (Visible if not unlocked) -->
+          <div class="settings-lock-screen" id="settings-admin-lock">
+            <i data-lucide="lock" class="lock-icon"></i>
+            <h3>Admin Settings Locked</h3>
+            <p>Enter the Admin PIN to modify members, pairs, and schedules.</p>
+            
+            <div class="pin-input-container">
+              <input type="password" id="admin-pin-field" placeholder="Enter PIN" pattern="[0-9]*" inputmode="numeric" maxlength="6">
+              <button id="btn-unlock-settings" class="btn btn-primary">Unlock</button>
+            </div>
+          </div>
+
+          <!-- Admin Panel Content (Unlocked) -->
+          <div class="settings-unlocked-content hidden" id="settings-admin-panel">
+            
+            <!-- Section: Manage Members -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <h3>Manage Members</h3>
+                <button id="btn-show-add-member" class="btn-text">+ Add Member</button>
+              </div>
+
+              <!-- Add Member Modal/Sub-form -->
+              <div id="add-member-form-box" class="form-drawer hidden">
+                <h4>Add New Member</h4>
+                <div class="input-group mt-2">
+                  <label for="new-member-name">Name</label>
+                  <input type="text" id="new-member-name" placeholder="e.g. Neeraj">
+                </div>
+                <div class="input-group">
+                  <label for="new-member-phone">Phone Number</label>
+                  <input type="tel" id="new-member-phone" placeholder="e.g. +919999988888">
+                </div>
+                <div class="input-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="new-member-admin"> Is Admin?
+                  </label>
+                </div>
+                <div class="form-drawer-actions">
+                  <button id="btn-save-member" class="btn btn-primary btn-sm">Save</button>
+                  <button id="btn-cancel-member" class="btn btn-secondary btn-sm">Cancel</button>
+                </div>
+              </div>
+
+              <!-- Members list -->
+              <div class="members-list" id="settings-members-list">
+                <!-- Dynamically generated -->
+              </div>
+            </div>
+
+            <!-- Section: Manage Pairs -->
+            <div class="settings-section" id="settings-section-pairs">
+              <div class="settings-section-header">
+                <h3>Manage Pairs</h3>
+                <button id="btn-show-add-pair" class="btn-text">+ Create Pair</button>
+              </div>
+
+              <!-- Create Pair Drawer -->
+              <div id="add-pair-form-box" class="form-drawer hidden">
+                <h4>Create Member Pair</h4>
+                <p class="drawer-desc">Pairs will be cycled randomly for duties.</p>
+                <div class="pair-selectors mt-2">
+                  <div class="input-group">
+                    <label for="pair-member-1">Member 1</label>
+                    <select id="pair-member-1">
+                      <!-- Dropdown options dynamic -->
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="pair-member-2">Member 2</label>
+                    <select id="pair-member-2">
+                      <!-- Dropdown options dynamic -->
+                    </select>
+                  </div>
+                </div>
+                <div class="form-drawer-actions">
+                  <button id="btn-save-pair" class="btn btn-primary btn-sm">Create Pair</button>
+                  <button id="btn-cancel-pair" class="btn btn-secondary btn-sm">Cancel</button>
+                </div>
+              </div>
+
+              <!-- Pairs List -->
+              <div class="pairs-list" id="settings-pairs-list">
+                <!-- Dynamically generated -->
+              </div>
+            </div>
+
+            <!-- Section: Schedule Rotation -->
+            <div class="settings-section">
+              <h3>Current Rotation Order</h3>
+              <p class="section-desc">Duties cycle through this randomized order. Once completed, a new shuffle is generated.</p>
+              <div class="rotation-queue-list" id="settings-rotation-list">
+                <!-- Dynamically generated -->
+              </div>
+              <button id="btn-reshuffle-queue" class="btn btn-secondary btn-sm mt-3">
+                <i data-lucide="shuffle"></i> Force Reshuffle
+              </button>
+            </div>
+          </div>
+
+          <!-- Section: Install as App -->
+          <div class="settings-section mt-4">
+            <h3>App Installation</h3>
+            <p class="section-desc">Install this app to your phone's home screen for quick, offline access.</p>
+            
+            <!-- Install Trigger Button (Chrome/Android) -->
+            <div id="pwa-install-supported" class="hidden">
+              <button id="btn-pwa-install" class="btn btn-primary btn-block">
+                <i data-lucide="download"></i> Install as Mobile App
+              </button>
+            </div>
+
+            <!-- iOS Safari Instructions -->
+            <div id="pwa-install-ios" class="ios-install-box">
+              <div class="ios-install-title">
+                <i data-lucide="apple" class="apple-icon"></i>
+                <span>How to Install on iPhone:</span>
+              </div>
+              <ol class="ios-install-steps">
+                <li>Open this page in the <strong>Safari</strong> browser.</li>
+                <li>Tap the <strong>Share</strong> button <i data-lucide="share" class="inline-icon"></i> in the bottom menu bar.</li>
+                <li>Scroll down and tap <strong>Add to Home Screen</strong> <i data-lucide="plus-square" class="inline-icon"></i>.</li>
+                <li>Name the app and tap <strong>Add</strong> in the top right.</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- Section: User Self Services -->
+          <div class="settings-section border-top">
+            <h3>My Account</h3>
+            <button id="btn-delete-account" class="btn btn-danger btn-block mt-3">
+              <i data-lucide="trash-2"></i> Delete My Account
+            </button>
+            <p class="danger-notice">WARNING: Deleting your account will remove your profile, erase your current pair pairings, and clear all your future duty schedules.</p>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- Bottom Tab Bar Navigation -->
+      <nav class="bottom-tab-bar">
+        <button class="tab-bar-item active" data-tab="dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </button>
+        <button class="tab-bar-item" data-tab="calendar">
+          <i data-lucide="calendar"></i>
+          <span>Calendar</span>
+        </button>
+        <button class="tab-bar-item" data-tab="settings">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+    </div>
+
+    <!-- 6. SWAP OVERRIDE MODAL -->
+    <div id="modal-override" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Override Duty</h3>
+          <button id="btn-close-override" class="icon-btn-plain"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+          <p id="override-date-label" class="modal-desc">Change who is responsible for June 4, 2026.</p>
+          
+          <!-- Admin Auth (if not unlocked) -->
+          <div id="override-admin-auth">
+            <div class="input-group">
+              <label for="override-pin-field">Enter Admin PIN to Swap</label>
+              <input type="password" id="override-pin-field" placeholder="Admin PIN" pattern="[0-9]*" inputmode="numeric" maxlength="6">
+            </div>
+          </div>
+
+          <!-- Selection dropdown (revealed once admin unlocked or if already unlocked) -->
+          <div id="override-selection-box" class="hidden">
+            <div class="input-group">
+              <label for="override-pair-select">Assign Responsibility To:</label>
+              <select id="override-pair-select">
+                <!-- Dynamic list of pairs -->
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button id="btn-cancel-override" class="btn btn-secondary">Cancel</button>
+          <button id="btn-save-override" class="btn btn-primary">Apply Swap</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELETE ACCOUNT CONFIRMATION MODAL -->
+    <div id="modal-delete-confirm" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 class="danger-title">Delete Account?</h3>
+        </div>
+        <div class="modal-body">
+          <p>Are you absolutely sure you want to delete your account? This action is permanent and will:</p>
+          <ul>
+            <li>Delete your user profile</li>
+            <li>Break your current pair assignments</li>
+            <li>Clear all of your future duty assignments</li>
+          </ul>
+        </div>
+        <div class="modal-actions">
+          <button id="btn-cancel-delete" class="btn btn-secondary">Cancel</button>
+          <button id="btn-confirm-delete" class="btn btn-danger">Yes, Delete Account</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase Invisible reCAPTCHA Container -->
+  <div id="recaptcha-container"></div>
+
+  <!-- Loading scripts -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
