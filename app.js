@@ -717,6 +717,9 @@ function updateSettingsView() {
     lockScreen.classList.remove('hidden');
     panel.classList.add('hidden');
   }
+
+  // Initialize push notification toggle status
+  initPushNotificationToggle();
 }
 
 // Render members details in settings
@@ -962,6 +965,12 @@ function setupEventListeners() {
 
   // D. DUTY COMPLETE BUTTON
   document.getElementById('btn-complete-duty').addEventListener('click', handleCompleteDuty);
+
+  // K. PUSH NOTIFICATIONS TOGGLE
+  const togglePush = document.getElementById('toggle-push-notifications');
+  if (togglePush) {
+    togglePush.addEventListener('change', handlePushToggleChange);
+  }
 
   // E. WHATSAPP REMINDER
   document.getElementById('btn-whatsapp-reminder').addEventListener('click', handleWhatsappReminder);
@@ -1843,4 +1852,152 @@ function formatDateToYYYYMMDD(date) {
   const mm = String(date.getMonth() + 1).padStart(2, '0');
   const dd = String(date.getDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
+}
+
+// Web Push Notifications Subscription Logic
+
+// Utility to convert Base64 URL Safe to Uint8Array for VAPID key
+function urlB64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding)
+    .replace(/\-/g, '+')
+    .replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// Initialize Push Toggle UI state
+async function initPushNotificationToggle() {
+  const togglePush = document.getElementById('toggle-push-notifications');
+  const statusLabel = document.getElementById('push-permission-status');
+  if (!togglePush || !statusLabel) return;
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    togglePush.disabled = true;
+    statusLabel.innerText = "Status: Unsupported on this browser/device";
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    togglePush.disabled = true;
+    togglePush.checked = false;
+    statusLabel.innerText = "Status: Permission Blocked in Browser Settings";
+    return;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const subscription = await reg.pushManager.getSubscription();
+    
+    if (subscription) {
+      // Check if we are logged in and if sub is registered in Supabase
+      if (session) {
+        // Just verify UI checked state
+        togglePush.checked = true;
+        statusLabel.innerText = "Status: Reminders Active (Subscribed)";
+      } else {
+        // Logged out, clear subscription locally just in case
+        togglePush.checked = false;
+        statusLabel.innerText = "Status: Disabled (Log in to enable)";
+      }
+    } else {
+      togglePush.checked = false;
+      statusLabel.innerText = "Status: Disabled";
+    }
+  } catch (err) {
+    console.error("Error checking push status:", err);
+    statusLabel.innerText = "Status: Checking failed";
+  }
+}
+
+// Handle Push Toggle Switch changes
+async function handlePushToggleChange(e) {
+  if (!session) {
+    showToast("Please log in to register push notifications.");
+    e.target.checked = false;
+    return;
+  }
+
+  const statusLabel = document.getElementById('push-permission-status');
+  const checked = e.target.checked;
+  
+  showLoading(true);
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    
+    if (checked) {
+      // 1. Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        showToast("Notification permission was denied.");
+        e.target.checked = false;
+        if (statusLabel) statusLabel.innerText = "Status: Permission Denied";
+        showLoading(false);
+        return;
+      }
+      
+      // 2. Subscribe using VAPID public key
+      const subscription = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+      
+      // 3. Extract credentials
+      const rawSub = JSON.parse(JSON.stringify(subscription));
+      const endpoint = rawSub.endpoint;
+      const p256dh = rawSub.keys.p256dh;
+      const auth = rawSub.keys.auth;
+      
+      // 4. Save to Supabase push_subscriptions
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .insert({
+          profile_id: session.user.id,
+          endpoint,
+          p256dh,
+          auth
+        });
+        
+      if (error) {
+        if (error.message.includes('duplicate key')) {
+          // Already exists in DB, ignore error
+        } else {
+          throw error;
+        }
+      }
+      
+      if (statusLabel) statusLabel.innerText = "Status: Reminders Active (Subscribed)";
+      showToast("Push notifications successfully enabled!");
+    } else {
+      // Unsubscribe
+      const subscription = await reg.pushManager.getSubscription();
+      if (subscription) {
+        const endpoint = subscription.endpoint;
+        
+        // 1. Unsubscribe from browser
+        await subscription.unsubscribe();
+        
+        // 2. Delete from Supabase
+        const { error } = await supabase
+          .from('push_subscriptions')
+          .delete()
+          .eq('endpoint', endpoint);
+          
+        if (error) console.error("Failed to delete subscription row from Supabase:", error);
+      }
+      
+      if (statusLabel) statusLabel.innerText = "Status: Disabled";
+      showToast("Notifications disabled.");
+    }
+  } catch (err) {
+    console.error("Failed to update push subscription:", err);
+    showToast("Error updating push subscription: " + err.message);
+    e.target.checked = !checked; // revert switch
+  } finally {
+    showLoading(false);
+  }
 }

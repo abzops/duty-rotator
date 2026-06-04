@@ -75,3 +75,59 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+// Handle push notification event
+self.addEventListener('push', (event) => {
+  console.log('[Service Worker] Push Received.');
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'Duty Rotator', body: event.data.text() };
+    }
+  }
+
+  const title = data.title || 'Duty Rotator Reminder';
+  const options = {
+    body: data.body || "It's time for duty!",
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    vibrate: [100, 50, 100],
+    data: {
+      url: data.url || self.location.origin
+    }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// Handle notification click event (focus app window or open a new one)
+self.addEventListener('notificationclick', (event) => {
+  console.log('[Service Worker] Notification click Received.');
+  event.notification.close();
+
+  const urlToOpen = event.notification.data && event.notification.data.url
+    ? event.notification.data.url
+    : self.location.origin;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windowClients) => {
+        // Focus existing open window if possible
+        for (let i = 0; i < windowClients.length; i++) {
+          const client = windowClients[i];
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // If no window is open, open a new tab/window
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});
+

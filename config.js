@@ -13,3 +13,6 @@ const FIREBASE_CONFIG = {
   appId: "1:219259347418:web:9ae880cecfa046533420e3",
   measurementId: "G-58C9C42BLF"
 };
+
+// VAPID Public Key for Web Push Notifications
+const VAPID_PUBLIC_KEY = "BLES5mOVYnR7CLy8frmWtgDz-cy_ejZow99ZQc8LnEcR0FIb9T60STs8f6UGv_zjslcIJWFLf0Z815JMz_XcoVY";
