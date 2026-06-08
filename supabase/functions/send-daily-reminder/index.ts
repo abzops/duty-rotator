@@ -43,6 +43,33 @@ function getDutyDayIndex(targetDate: Date) {
   return count;
 }
 
+// Seeded Pseudorandom Number Generator (Mulberry32)
+function seededRandom(seed: number) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Deterministic shuffle using a string seed
+function seededShuffle<T>(array: T[], seedString: string): T[] {
+  let seed = 0;
+  for (let i = 0; i < seedString.length; i++) {
+    seed = (seed * 31 + seedString.charCodeAt(i)) | 0;
+  }
+  const rand = seededRandom(seed);
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+  return shuffled;
+}
+
 Deno.serve(async (req) => {
   // 1. Authorize calling client (ensure only cron triggers it using service key)
   const authHeader = req.headers.get("Authorization");
@@ -173,8 +200,16 @@ Deno.serve(async (req) => {
       } else {
         // Deterministic rotation fallback (or if blank pending record exists)
         const dutyIndex = getDutyDayIndex(istDate);
+        // Sort pairs by ID to establish a deterministic baseline
         const sortedPairs = [...finalPairs].sort((a, b) => a.id.localeCompare(b.id));
-        assignedPair = sortedPairs[dutyIndex % sortedPairs.length];
+        
+        // Seed shuffle based on Year-Month of target date to rotate randomly every month
+        const yyyy = istDate.getUTCFullYear();
+        const mm = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+        const monthSeed = `${yyyy}-${mm}`;
+        const shuffledPairs = seededShuffle(sortedPairs, monthSeed);
+        
+        assignedPair = shuffledPairs[dutyIndex % shuffledPairs.length];
       }
 
       if (isCompleted || !assignedPair) {

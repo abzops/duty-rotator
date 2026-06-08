@@ -357,9 +357,16 @@ function resolveDutyForDate(date) {
   }
 
   const dutyIndex = getDutyDayIndex(date);
-  // Sort pairs by ID or rotation order to ensure all devices cycle in exact same sequence
+  // Sort pairs by ID to establish a deterministic baseline
   const sortedPairs = [...pairs].sort((a,b) => a.id.localeCompare(b.id));
-  const assignedPair = sortedPairs[dutyIndex % sortedPairs.length];
+  
+  // Seed shuffle based on Year-Month of target date to rotate randomly every month
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const monthSeed = `${yyyy}-${mm}`;
+  const shuffledPairs = seededShuffle(sortedPairs, monthSeed);
+  
+  const assignedPair = shuffledPairs[dutyIndex % shuffledPairs.length];
 
   return {
     id: savedRecord ? savedRecord.id : undefined,
@@ -801,7 +808,7 @@ function renderRotationList() {
   const container = document.getElementById('settings-rotation-list');
   container.innerHTML = "";
 
-  // Dynamic sorting
+  // Sort pairs by ID to establish a deterministic baseline
   const sortedPairs = [...pairs].sort((a,b) => a.id.localeCompare(b.id));
   
   if (sortedPairs.length === 0) {
@@ -809,7 +816,14 @@ function renderRotationList() {
     return;
   }
 
-  sortedPairs.forEach((pair, index) => {
+  // Seed shuffle based on the current Year-Month
+  const now = new Date();
+  const yyyy = now.getFullYear();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const monthSeed = `${yyyy}-${mm}`;
+  const shuffledPairs = seededShuffle(sortedPairs, monthSeed);
+
+  shuffledPairs.forEach((pair, index) => {
     const item = document.createElement('div');
     item.className = "rotation-queue-item";
     item.innerHTML = `
@@ -1812,6 +1826,33 @@ function setupPwaInstall() {
       showToast("App installed successfully! Check your home screen.");
     });
   }
+}
+
+// Seeded Pseudorandom Number Generator (Mulberry32)
+function seededRandom(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Deterministic shuffle using a string seed
+function seededShuffle(array, seedString) {
+  let seed = 0;
+  for (let i = 0; i < seedString.length; i++) {
+    seed = (seed * 31 + seedString.charCodeAt(i)) | 0;
+  }
+  const rand = seededRandom(seed);
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const temp = shuffled[i];
+    shuffled[i] = shuffled[j];
+    shuffled[j] = temp;
+  }
+  return shuffled;
 }
 
 // 8. UTILITY HELPERS
