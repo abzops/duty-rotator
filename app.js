@@ -1053,6 +1053,7 @@ function setupEventListeners() {
     toggleDrawer('add-pair-form-box', false);
   });
   document.getElementById('btn-save-pair').addEventListener('click', handleAddPair);
+  document.getElementById('btn-random-pair').addEventListener('click', handleRandomizePairs);
 
   // I. OVERRIDE SWAP MODAL
   document.getElementById('btn-close-override').addEventListener('click', closeOverrideModal);
@@ -1623,6 +1624,72 @@ async function handleAddPair() {
     await loadCurrentWorkspaceData();
   } catch (err) {
     showToast(err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Randomize Pairs for the Active Workspace
+async function handleRandomizePairs() {
+  if (members.length < 2) {
+    showToast("Need at least 2 members to create pairs.");
+    return;
+  }
+
+  if (!confirm("This will clear all current pairs and generate new random pairings for this workspace. Continue?")) {
+    return;
+  }
+
+  showLoading(true);
+  try {
+    // 1. Delete all existing pairs for this workspace
+    const { error: delError } = await supabase
+      .from('pairs')
+      .delete()
+      .eq('workspace', activeWorkspace);
+
+    if (delError) throw delError;
+
+    // 2. Shuffle members list randomly
+    const shuffledMembers = [...members];
+    for (let i = shuffledMembers.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const temp = shuffledMembers[i];
+      shuffledMembers[i] = shuffledMembers[j];
+      shuffledMembers[j] = temp;
+    }
+
+    // 3. Build pair objects
+    const newPairs = [];
+    for (let i = 0; i < shuffledMembers.length; i += 2) {
+      if (i + 1 < shuffledMembers.length) {
+        newPairs.push({
+          workspace: activeWorkspace,
+          member1_id: shuffledMembers[i].id,
+          member2_id: shuffledMembers[i + 1].id
+        });
+      } else {
+        // Odd member out, pair with the first member
+        newPairs.push({
+          workspace: activeWorkspace,
+          member1_id: shuffledMembers[i].id,
+          member2_id: shuffledMembers[0].id
+        });
+      }
+    }
+
+    // 4. Save to database
+    const { error: insError } = await supabase
+      .from('pairs')
+      .insert(newPairs);
+
+    if (insError) throw insError;
+
+    showToast("Random pairs generated successfully!");
+    await loadCurrentWorkspaceData();
+  } catch (err) {
+    console.error("Error randomizing pairs:", err);
+    showToast("Error randomizing pairs: " + err.message);
   } finally {
     showLoading(false);
   }
