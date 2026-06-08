@@ -316,13 +316,12 @@ function resolveDutyForDate(date) {
 
   // 1. Check if we have a locked record in the duties list (completed or overridden)
   const savedRecord = duties.find(d => d.date === dateStr && d.duty_type === dutyType);
+  const activePairId = savedRecord ? (savedRecord.override_pair_id || savedRecord.pair_id) : null;
   
-  if (savedRecord) {
+  // Only use the saved record directly if it's completed OR has a valid override/pair assigned.
+  // If it's a pending duty record with no pair assigned (pair_id is null), fallback to dynamic rotation.
+  if (savedRecord && (savedRecord.completed || activePairId)) {
     let pairNames = "Unassigned";
-    let isOverride = false;
-    
-    // Find pair details
-    const activePairId = savedRecord.override_pair_id || savedRecord.pair_id;
     const pair = pairs.find(p => p.id === activePairId);
     
     if (savedRecord.completed && savedRecord.completed_by_names) {
@@ -346,12 +345,14 @@ function resolveDutyForDate(date) {
   // 2. Dynamic generation (Fallback to deterministic cycle)
   if (pairs.length === 0) {
     return {
+      id: savedRecord ? savedRecord.id : undefined,
       date: dateStr,
       duty_type: dutyType,
       pair_id: null,
       pair_names: "No Pairs Created",
       completed: false,
-      is_override: false
+      is_override: false,
+      record: savedRecord
     };
   }
 
@@ -361,12 +362,14 @@ function resolveDutyForDate(date) {
   const assignedPair = sortedPairs[dutyIndex % sortedPairs.length];
 
   return {
+    id: savedRecord ? savedRecord.id : undefined,
     date: dateStr,
     duty_type: dutyType,
     pair_id: assignedPair.id,
     pair_names: getPairMemberNames(assignedPair),
     completed: false,
-    is_override: false
+    is_override: false,
+    record: savedRecord
   };
 }
 
@@ -1830,10 +1833,19 @@ function showToast(message, duration = 3000) {
   const msgSpan = document.getElementById('toast-message');
   
   msgSpan.innerText = message;
+  toast.classList.remove('hidden');
+  // force reflow
+  void toast.offsetWidth;
   toast.classList.add('visible');
   
   setTimeout(() => {
     toast.classList.remove('visible');
+    // Add back hidden after opacity transition completes
+    setTimeout(() => {
+      if (!toast.classList.contains('visible')) {
+        toast.classList.add('hidden');
+      }
+    }, 350);
   }, duration);
 }
 

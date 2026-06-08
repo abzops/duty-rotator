@@ -161,17 +161,17 @@ Deno.serve(async (req) => {
       let isCompleted = false;
 
       const savedRecord = (dbDuties || []).find(d => d.date === dateStr && d.duty_type === dutyType);
+      const activePairId = savedRecord ? (savedRecord.override_pair_id || savedRecord.pair_id) : null;
 
-      if (savedRecord) {
+      if (savedRecord && (savedRecord.completed || activePairId)) {
         if (savedRecord.completed) {
           console.log(`Duty for ${workspace} on ${dateStr} is already completed.`);
           isCompleted = true;
         } else {
-          const activePairId = savedRecord.override_pair_id || savedRecord.pair_id;
           assignedPair = finalPairs.find(p => p.id === activePairId);
         }
       } else {
-        // Deterministic rotation fallback
+        // Deterministic rotation fallback (or if blank pending record exists)
         const dutyIndex = getDutyDayIndex(istDate);
         const sortedPairs = [...finalPairs].sort((a, b) => a.id.localeCompare(b.id));
         assignedPair = sortedPairs[dutyIndex % sortedPairs.length];
