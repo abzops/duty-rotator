@@ -201,7 +201,35 @@ async function loadCurrentWorkspaceData() {
     
     pairs = dbPairs || [];
 
-    // Cleanup: Filter out and delete pairs containing members no longer associated with this workspace
+    // Cleanup 1: Filter out and delete duplicate pairs
+    const seenPairKeys = new Set();
+    const duplicatePairs = [];
+    const uniquePairsList = [];
+
+    pairs.forEach(pair => {
+      const key = `${pair.workspace}-${pair.member1_id}-${pair.member2_id || 'null'}`;
+      if (seenPairKeys.has(key)) {
+        duplicatePairs.push(pair);
+      } else {
+        seenPairKeys.add(key);
+        uniquePairsList.push(pair);
+      }
+    });
+
+    if (duplicatePairs.length > 0) {
+      const duplicatePairIds = duplicatePairs.map(p => p.id);
+      console.log("Cleaning up duplicate pairs from database:", duplicatePairIds);
+      
+      // Delete duplicates from DB (non-blocking)
+      supabase.from('pairs').delete().in('id', duplicatePairIds)
+        .then(({ error }) => {
+          if (error) console.error("Error deleting duplicate pairs:", error);
+        });
+      
+      pairs = uniquePairsList;
+    }
+
+    // Cleanup 2: Filter out and delete pairs containing members no longer associated with this workspace
     const invalidPairs = pairs.filter(pair => {
       const mem1Exists = members.some(m => m.id === pair.member1_id);
       const mem2Exists = !pair.member2_id || members.some(m => m.id === pair.member2_id);
