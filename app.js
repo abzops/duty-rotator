@@ -334,18 +334,27 @@ function getDutyTypeForDate(date) {
   return null; // None
 }
 
-// Deterministic counter of duty days from baseline to targetDate
+// Deterministic counter of duty days from baseline to targetDate (Optimized O(1) time complexity)
 function getDutyDayIndex(targetDate) {
-  let count = 0;
-  let current = new Date(BASELINE_DATE.getTime());
+  const baseline = new Date(BASELINE_DATE.getTime());
   
   // Normalize time
-  current.setHours(0,0,0,0);
+  baseline.setHours(0,0,0,0);
   const target = new Date(targetDate.getTime());
   target.setHours(0,0,0,0);
 
-  if (target < current) return 0;
+  if (target < baseline) return 0;
 
+  // Calculate difference in days and full weeks
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((target - baseline) / msPerDay);
+  const diffWeeks = Math.floor(diffDays / 7);
+  
+  // Each full week has exactly 4 active duty days (Mon, Wed, Thu, Fri)
+  let count = diffWeeks * 4;
+  
+  // Check remaining days in the fractional week (max 6 days)
+  const current = new Date(baseline.getTime() + diffWeeks * 7 * msPerDay);
   while (current <= target) {
     if (getDutyTypeForDate(current) !== null) {
       count++;
@@ -354,6 +363,7 @@ function getDutyDayIndex(targetDate) {
   }
   return count;
 }
+
 
 // Resolve who has duty on a date
 function resolveDutyForDate(date) {

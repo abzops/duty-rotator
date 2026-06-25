@@ -25,7 +25,6 @@ function getDutyTypeForDate(date: Date) {
 }
 
 function getDutyDayIndex(targetDate: Date) {
-  let count = 0;
   const current = new Date(BASELINE_DATE.getTime());
   current.setUTCHours(0, 0, 0, 0);
   
@@ -34,14 +33,25 @@ function getDutyDayIndex(targetDate: Date) {
 
   if (target < current) return 0;
 
-  while (current <= target) {
-    if (getDutyTypeForDate(current) !== null) {
+  // Calculate full weeks using UTC dates
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((target.getTime() - current.getTime()) / msPerDay);
+  const diffWeeks = Math.floor(diffDays / 7);
+
+  let count = diffWeeks * 4; // 4 active duty days per week
+
+  const startChecking = new Date(current.getTime() + diffWeeks * 7 * msPerDay);
+  startChecking.setUTCHours(0, 0, 0, 0);
+
+  while (startChecking <= target) {
+    if (getDutyTypeForDate(startChecking) !== null) {
       count++;
     }
-    current.setUTCDate(current.getUTCDate() + 1);
+    startChecking.setUTCDate(startChecking.getUTCDate() + 1);
   }
   return count;
 }
+
 
 // Seeded Pseudorandom Number Generator (Mulberry32)
 function seededRandom(seed: number) {
