@@ -1058,6 +1058,12 @@ function setupEventListeners() {
     togglePush.addEventListener('change', handlePushToggleChange);
   }
 
+  // TEST PUSH NOTIFICATION
+  const btnTestPush = document.getElementById('btn-send-test-push');
+  if (btnTestPush) {
+    btnTestPush.addEventListener('click', handleSendTestPush);
+  }
+
   // E. WHATSAPP REMINDER
   document.getElementById('btn-whatsapp-reminder').addEventListener('click', handleWhatsappReminder);
 
@@ -2190,3 +2196,42 @@ async function handlePushToggleChange(e) {
     showLoading(false);
   }
 }
+
+// Send a test notification via the Service Worker
+async function handleSendTestPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    showToast("Push notifications are not supported on this device/browser.");
+    return;
+  }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      showToast("Notification permission was denied. Please enable them in browser settings.");
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+    
+    // Check if user is subscribed first to give them useful feedback
+    const sub = await reg.pushManager.getSubscription();
+    const subStatusText = sub ? "\n(Device subscription is registered!)" : "\n(Note: Device is not subscribed yet. Enable the toggle above to register.)";
+
+    const payload = {
+      body: `Beep boop! This is a test notification from the Waste Duty Rotator app.${subStatusText}`,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      vibrate: [100, 50, 100],
+      data: {
+        url: window.location.origin
+      }
+    };
+
+    await reg.showNotification("Duty Rotator Test 🗑️", payload);
+    showToast("Test notification sent!");
+  } catch (err) {
+    console.error("Failed to send test notification:", err);
+    showToast("Test notification failed: " + err.message);
+  }
+}
+
