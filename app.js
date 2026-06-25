@@ -199,8 +199,28 @@ async function loadCurrentWorkspaceData() {
       
     if (pairErr) throw pairErr;
     
-    // Sort pairs by creation/id to keep order deterministic or use custom ordering if saved
     pairs = dbPairs || [];
+
+    // Cleanup: Filter out and delete pairs containing members no longer associated with this workspace
+    const invalidPairs = pairs.filter(pair => {
+      const mem1Exists = members.some(m => m.id === pair.member1_id);
+      const mem2Exists = !pair.member2_id || members.some(m => m.id === pair.member2_id);
+      return !mem1Exists || !mem2Exists;
+    });
+
+    if (invalidPairs.length > 0) {
+      const invalidPairIds = invalidPairs.map(p => p.id);
+      console.log("Cleaning up obsolete pairs from database:", invalidPairIds);
+      
+      // Delete from DB (non-blocking)
+      supabase.from('pairs').delete().in('id', invalidPairIds)
+        .then(({ error }) => {
+          if (error) console.error("Error cleaning up invalid pairs:", error);
+        });
+      
+      // Update local state immediately
+      pairs = pairs.filter(p => !invalidPairIds.includes(p.id));
+    }
 
     // Self-healing / Sync logic for House Mode individual chores
     if (activeWorkspace === 'house') {
