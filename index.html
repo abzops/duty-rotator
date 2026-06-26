@@ -493,6 +493,38 @@
                 <i data-lucide="shuffle"></i> Force Reshuffle
               </button>
             </div>
+
+            <!-- Section: Send Custom Announcement (Admin Only) -->
+            <div class="settings-section">
+              <div class="settings-section-header">
+                <h3>Send Custom Alert</h3>
+                <button id="btn-show-custom-push" class="btn-text">Open Drawer</button>
+              </div>
+
+              <!-- Custom Notification Console Drawer -->
+              <div id="custom-push-form-box" class="form-drawer hidden">
+                <h4>Dispatch Push Alert</h4>
+                <p class="drawer-desc">Send an instant push notification to a specific team member.</p>
+                <div class="input-group mt-2">
+                  <label for="custom-push-recipient">Recipient Member</label>
+                  <select id="custom-push-recipient">
+                    <!-- Dropdown options dynamic -->
+                  </select>
+                </div>
+                <div class="input-group">
+                  <label for="custom-push-title">Alert Title</label>
+                  <input type="text" id="custom-push-title" placeholder="e.g. Trash Duty Call! 🗑️" value="Trash Duty Alert 🗑️">
+                </div>
+                <div class="input-group">
+                  <label for="custom-push-body">Message Content</label>
+                  <textarea id="custom-push-body" rows="2" placeholder="e.g. Hey! Please clear the kitchen bins today."></textarea>
+                </div>
+                <div class="form-drawer-actions">
+                  <button id="btn-submit-custom-push" class="btn btn-primary btn-sm">Send Push</button>
+                  <button id="btn-cancel-custom-push" class="btn btn-secondary btn-sm">Cancel</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Section: Push Notifications -->

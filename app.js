@@ -857,6 +857,15 @@ function renderPairsList() {
     sel1.innerHTML += `<option value="${m.id}">${m.name}</option>`;
     sel2.innerHTML += `<option value="${m.id}">${m.name}</option>`;
   });
+
+  // Re-populate member select in Custom Push Announcement form
+  const customPushSel = document.getElementById('custom-push-recipient');
+  if (customPushSel) {
+    customPushSel.innerHTML = `<option value="">Choose Recipient...</option>`;
+    members.forEach(m => {
+      customPushSel.innerHTML += `<option value="${m.id}">${m.name}</option>`;
+    });
+  }
   
   if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -1118,6 +1127,16 @@ function setupEventListeners() {
   });
   document.getElementById('btn-save-pair').addEventListener('click', handleAddPair);
   document.getElementById('btn-random-pair').addEventListener('click', handleRandomizePairs);
+
+  // CUSTOM PUSH ALERTS (ADMIN DRAWER)
+  document.getElementById('btn-show-custom-push').addEventListener('click', () => {
+    toggleDrawer('custom-push-form-box');
+  });
+  document.getElementById('btn-cancel-custom-push').addEventListener('click', () => {
+    toggleDrawer('custom-push-form-box', false);
+  });
+  document.getElementById('btn-submit-custom-push').addEventListener('click', handleSendCustomPushAnnouncement);
+
 
   // I. OVERRIDE SWAP MODAL
   document.getElementById('btn-close-override').addEventListener('click', closeOverrideModal);
@@ -1754,6 +1773,62 @@ async function handleRandomizePairs() {
   } catch (err) {
     console.error("Error randomizing pairs:", err);
     showToast("Error randomizing pairs: " + err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// Submit custom push alert via Supabase Edge Function
+async function handleSendCustomPushAnnouncement() {
+  const targetId = document.getElementById('custom-push-recipient').value;
+  const title = document.getElementById('custom-push-title').value.trim();
+  const body = document.getElementById('custom-push-body').value.trim();
+
+  if (!targetId) {
+    showToast("Please select a recipient member.");
+    return;
+  }
+  if (!title || !body) {
+    showToast("Both title and message content are required.");
+    return;
+  }
+
+  showLoading(true);
+  try {
+    const edgeFunctionUrl = `${SUPABASE_URL}/functions/v1/send-custom-push`;
+    
+    const response = await fetch(edgeFunctionUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+      },
+      body: JSON.stringify({
+        sender_id: session.user.id,
+        target_id: targetId,
+        title: title,
+        body: body
+      })
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || `HTTP error! status: ${response.status}`);
+    }
+
+    if (result.success) {
+      showToast(`Push alert sent successfully!`);
+      // Reset form fields
+      document.getElementById('custom-push-body').value = "";
+      toggleDrawer('custom-push-form-box', false);
+    } else {
+      showToast(`Warning: ${result.error || result.message || "Push failed to send."}`, 5000);
+    }
+  } catch (err) {
+    console.error("Custom push alert error:", err);
+    showToast("Failed to dispatch alert: " + err.message, 5000);
   } finally {
     showLoading(false);
   }
