@@ -1,0 +1,16 @@
+# Supabase local temp files
+supabase/.temp/
+supabase/functions/.import_map.json
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Environments
+.env
+.env.local
+.env.*.local
+
+# Dependency directories
+node_modules/
+.pnpm-store/
